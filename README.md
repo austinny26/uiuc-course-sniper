@@ -5,8 +5,9 @@ A browser-console script for UIUC's Banner registration (Student Self-Service â†
 - **No password stored anywhere.** It runs inside your own signed-in Banner tab and uses that session. Duo works normally because you sign in yourself.
 - **Handles linked sections.** You list whole combinations (lecture + discussion, lecture + lab + discussion), and it only registers a combination when every part has a seat.
 - **Shows conflicts.** `sniperSections()` prints every section of a course with times, open seats, and which of your current classes it would clash with.
+- **Can swap a class out.** Optionally drop classes you name, for example one that time-conflicts with the course you want, in the same step it registers you. There's built-in recovery if the add fails.
 - **Alerts you.** You get a beep, a desktop notification, and a changed tab title when it registers you, or if Banner signs you out.
-- **Never drops anything.** It only adds the CRNs you list.
+- **Only drops what you list.** It never drops anything you didn't put in `drop`.
 - **CHANGING THE MS DELAY TO ANYTHING LOWER THAN 30 SECONDS MIGHT FLAG YOU ACCOUNT LOWER IT AT YOUR OWN RISK
   
 
@@ -49,6 +50,37 @@ A browser-console script for UIUC's Banner registration (Student Self-Service â†
    ```
    When a combination opens, the script switches to **Enter CRNs**, types the CRNs, clicks **Add to Summary** and **Submit**, and checks that each one shows **Registered**. If something fails, it logs why and tries again on the next check. Once a course is registered, it stops watching that course.
 
+## Dropping a class to make room
+
+If the course you want conflicts with a class you're already in, or would put you over your credit-hour maximum, add `drop` to that course. The script then drops those CRNs when it registers you:
+
+```js
+watch: [
+  { subject: 'STAT', number: '400',
+    combos: [
+      ['36133', '36137'],          // lecture + discussion you want
+    ],
+    drop: ['46074', '52979'],      // lecture + discussion of the class to give up
+    dropMode: 'together',          // or 'after' (see below)
+  },
+],
+```
+
+Run `sniperSections()` on the course you want: its `conflictsWith` column tells you which class is in the way. The CRNs to drop are listed in Banner's **Summary** panel.
+
+**Drop modes**
+
+| `dropMode` | How it works | Use when |
+|---|---|---|
+| `'together'` (default) | Adds the new CRNs and marks the drop CRNs as **Web Drop Course** in **one** submit | The new class time-conflicts with the one you're dropping, or you'd go over your credit-hour max. Banner needs the drop and the add in the same submit. |
+| `'after'` | Adds first. Only drops once every new CRN shows **Registered** | The add doesn't depend on the drop, for example you just want to stop taking a class. This is the safest mode: you never lose a class unless you gained the new one. |
+
+**Safety in `'together'` mode.** UIUC's Banner doesn't offer "conditional add/drop", so if the add fails (the seat got taken a second earlier, a prerequisite or restriction error, and so on), the drop can still go through. When the script sees that happen, it **immediately re-adds the classes it just dropped**. Your old seat was just freed, so it's almost always still there. Then it keeps watching. If the re-add also fails, it beeps repeatedly, stops, and tells you which CRN to re-register by hand right away.
+
+Before it starts watching, the script checks that you're actually registered in every `drop` CRN, and warns you if you aren't.
+
+> Drops can't be undone once someone else takes your old seat. Double-check the `drop` CRNs, and prefer `'after'` whenever the add doesn't need the drop.
+
 ## Commands
 
 | Command | What it does |
@@ -74,7 +106,7 @@ If you're unsure, run a search in Banner and look for `txt_term=` in the Network
 - **Banner signs you out after a while.** The script notices, beeps, and stops. Sign back in and paste it again.
 - **Don't search for other classes in that tab while it runs.** Banner remembers one search per session, and each check re-runs its own search. Use a different browser profile if you need to browse at the same time.
 - **Be reasonable with `everyMs`.** 30 seconds is plenty. Hammering Banner doesn't help and could get your session flagged.
-- **Registration rules still apply.** It can't get around holds, prerequisites, restrictions, time-conflict errors, or your credit-hour maximum. If Banner rejects a CRN, the log shows why.
+- **Registration rules still apply.** It can't get around holds, prerequisites, or restrictions. For time conflicts and the credit-hour max, use `drop` (above). If Banner rejects a CRN, the log shows why.
 - **The add-and-submit step clicks Banner's own buttons.** If UIUC changes the Register for Classes page layout, that part may need updating.
 
 ## Disclaimer
