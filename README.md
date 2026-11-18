@@ -7,6 +7,8 @@ A browser-console script for UIUC's Banner registration (Student Self-Service â†
 - **Shows conflicts.** `sniperSections()` prints every section of a course with times, open seats, and which of your current classes it would clash with.
 - **Alerts you.** You get a beep, a desktop notification, and a changed tab title when it registers you, or if Banner signs you out.
 - **Never drops anything.** It only adds the CRNs you list.
+- **CHANGING THE MS DELAY TO ANYTHING LOWER THAN 30 SECONDS MIGHT FLAG YOU ACCOUNT LOWER IT AT YOUR OWN RISK
+  
 
 ## Quick start
 
